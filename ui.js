@@ -100,7 +100,7 @@ const Row = React.createClass({
 const Example = React.createClass({
   render() {
     return (
-        <div>
+        <div className="container-fluid">
         {
             Object.keys(data).map(key =>
                 (<Row title={key} key={key}/>)
