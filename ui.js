@@ -1,83 +1,43 @@
+"use strict";
 /* @flow */
 /*::
 
 import React from 'react'
+import {State} from './logic'
 
 declare var BarChart:ReactClass
-
+declare class Object {}
 */
-
-const data = {
-  "foo": {
-      "data": [
-        {text: 'Man', value: 500},
-        {text: 'Woman', value: 300}
-      ],
-      "comments": [
-          'yolo',
-          'wizardry'
-      ],
-  },
-  "bar": {
-      "data": [
-        {text: 'Man', value: 500},
-        {text: 'Woman', value: 300}
-      ],
-      "comments": [
-          'yolo',
-          'wizardry'
-      ],
-  },
-  "baz": {
-      "data": [
-        {text: 'Man', value: 500},
-        {text: 'Woman', value: 300}
-      ],
-      "comments": [
-          'yolo',
-          'wizardry'
-      ],
-  },
-};
 
 const margin = {top: 20, right: 20, bottom: 30, left: 40};
 
 const Row = React.createClass({
 
-    getInitialState() {
-        return {value: ''}
-    },
-
-    onChange(event) {
-        this.setState({value: event.target.value})
-    },
-
-    onKeyUp(event) {
-        var enterKey = 13;
-        if (event.which == enterKey){
-            this.setState({'value': ''})
-        }
+    propTypes: {
+        graph: React.PropTypes.shape({
+            typing: React.PropTypes.string.isRequired
+        }).isRequired
     },
 
     render() {
-        const key = this.props.title
+        const graph = this.props.graph
         return (
             <div className="row">
                 <div className="col-md-4" />
                 <div className="panel panel-default col-md-4">
                     <div className="panel-heading">
-                        <h3 className="panel-title">{key}</h3>
+                        <h3 className="panel-title">Chart title</h3>
                     </div>
                     <div className="panel-body">
                         <BarChart
                             width={300}
                             height={300}
                             margin={margin}
-                            data={data[key].data}
+                            data={graph.data}
                             />
                         <ul className="list-group">
                             {
-                                data[key].comments.map((comment, index) =>
+                                graph.comments.map((comment, index) =>
                                     <li className="list-group-item" key={index}>{comment}</li>
                                 )
                             }
@@ -85,10 +45,10 @@ const Row = React.createClass({
                         <input
                             className="form-control"
                             type="text"
-                            value={this.state.value}
+                            value={graph.typing}
                             placeholder="Add a comment..."
-                            onKeyUp={this.onKeyUp}
-                            onChange={this.onChange}
+                            onKeyUp={graph.onKeyUp.bind(graph)}
+                            onChange={graph.onTextFieldChange.bind(graph)}
                             />
                     </div>
                 </div>
@@ -97,20 +57,27 @@ const Row = React.createClass({
     }
 })
 
-const Example = React.createClass({
+const Root = React.createClass({
+    propTypes: {
+        state: React.PropTypes.shape({
+            graphs: React.PropTypes.object.isRequired
+        }).isRequired
+    },
   render() {
     return (
         <div className="container-fluid">
         {
-            Object.keys(data).map(key =>
-                (<Row title={key} key={key}/>)
+            Object.keys(this.props.state.graphs).map(key =>
+                (<Row graph={this.props.state.graphs[key]} key={key}/>)
             )
         }
         </div>
     );
   }
 });
-React.render(
-  <Example />,
-  document.getElementById('content')
-);
+new State((state) => {
+    React.render(
+      <Root state={state}/>,
+      document.getElementById('content')
+    );
+})
