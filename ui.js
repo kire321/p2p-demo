@@ -15,7 +15,9 @@ const Row = React.createClass({
 
     propTypes: {
         graph: React.PropTypes.shape({
-            typing: React.PropTypes.string.isRequired
+            typing: React.PropTypes.string.isRequired,
+            title: React.PropTypes.string.isRequired,
+            axisTitle: React.PropTypes.string.isRequired,
         }).isRequired
     },
 
@@ -26,7 +28,7 @@ const Row = React.createClass({
                 <div className="col-md-4" />
                 <div className="panel panel-default col-md-4">
                     <div className="panel-heading">
-                        <h3 className="panel-title">Chart title</h3>
+                        <h3 className="panel-title">{graph.title}</h3>
                     </div>
                     <div className="panel-body">
                         <BarChart
@@ -34,6 +36,7 @@ const Row = React.createClass({
                             height={300}
                             margin={margin}
                             data={graph.data}
+                            ylabel={graph.axisTitle}
                             />
                         <ul className="list-group">
                             {
