@@ -1,13 +1,6 @@
 "use strict";
 /* @flow */
-/*::
 
-declare class Bar {
-    text:string;
-    value:number;
-}
-
-*/
 
 class State {
 
@@ -96,9 +89,34 @@ class Graph {
         }
     }
 
+
+    onPossibleVisibilityChange(el/*:DOMElement*/) {
+        console.log(el)
+    }
+
 }
 
 if(typeof exports === 'object') {
     exports.State = State
     exports.Graph = Graph
 }
+
+/*::
+
+declare class Bar {
+    text:string;
+    value:number;
+}
+
+declare class DOMElement {
+    getBoundingClientRect: () => Rectangle
+}
+
+declare class Rectangle {
+    top:number,
+    left:number,
+    right:number,
+    bottom:number
+}
+
+*/

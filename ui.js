@@ -6,7 +6,7 @@ import React from 'react'
 import {State} from './logic'
 
 declare var BarChart:ReactClass
-declare class Object {}
+const $ = ():any => {}
 */
 
 const margin = {top: 20, right: 20, bottom: 30, left: 40};
@@ -18,7 +18,19 @@ const Row = React.createClass({
             typing: React.PropTypes.string.isRequired,
             title: React.PropTypes.string.isRequired,
             axisTitle: React.PropTypes.string.isRequired,
+            onKeyUp: React.PropTypes.func.isRequired,
+            onTextFieldChange: React.PropTypes.func.isRequired,
+            onPossibleVisibilityChange: React.PropTypes.func.isRequired,
         }).isRequired
+    },
+
+    componentDidMount() {
+        this.onPossibleVisibilityChange()
+        $(window).on('scroll', this.onPossibleVisibilityChange)
+    },
+
+    onPossibleVisibilityChange() {
+        this.props.graph.onPossibleVisibilityChange(React.findDOMNode(this))
     },
 
     render() {
