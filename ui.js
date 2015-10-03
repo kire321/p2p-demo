@@ -21,6 +21,7 @@ const Row = React.createClass({
             onKeyUp: React.PropTypes.func.isRequired,
             onTextFieldChange: React.PropTypes.func.isRequired,
             onPossibleVisibilityChange: React.PropTypes.func.isRequired,
+            getDataAsArray: React.PropTypes.func.isRequired,
         }).isRequired
     },
 
@@ -30,7 +31,7 @@ const Row = React.createClass({
     },
 
     onPossibleVisibilityChange() {
-        this.props.graph.onPossibleVisibilityChange(React.findDOMNode(this))
+        this.props.graph.onPossibleVisibilityChange(React.findDOMNode(this.refs['chart']), window)
     },
 
     render() {
@@ -40,15 +41,16 @@ const Row = React.createClass({
                 <div className="col-md-4" />
                 <div className="panel panel-default col-md-4">
                     <div className="panel-heading">
-                        <h3 className="panel-title">{graph.title}</h3>
+                        <h3 className="panel-title">{`${graph.title}, in units of ${graph.axisTitle}`}</h3>
                     </div>
                     <div className="panel-body">
                         <BarChart
                             width={300}
                             height={300}
                             margin={margin}
-                            data={graph.data}
+                            data={graph.getDataAsArray()}
                             ylabel={graph.axisTitle}
+                            ref='chart'
                             />
                         <ul className="list-group">
                             {

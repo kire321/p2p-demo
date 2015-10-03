@@ -7,12 +7,27 @@ declare function before(func:any):any
 
 import {State, Graph} from './logic'
 var assert = require('chai').assert
+
 const getDefaultGraphArgs = () => ({
-    render: () => {},
+    parent: new State(() => {}),
     title: 'laTitle',
     axisTitle: 'laAxis',
-    startingData: [],
+    startingData: {},
 })
+
+const getDefaultDOMElement = () => ({
+    getBoundingClientRect: () => ({
+        top:0,
+        left:0,
+        right:1,
+        bottom:1,
+    })
+})
+
+const getDefaultState = (done) => {
+    var called = false
+    return new State((newState) => called ? done(null, newState) : called = true)
+}
 
 describe("State", () => {
 
@@ -20,6 +35,7 @@ describe("State", () => {
         const state = new State(() => {})
         assert.strictEqual('', state.graphs["views"].typing)
     })
+
 
     it("does an initial render", (done) => {
         new State((state) => {
@@ -29,8 +45,7 @@ describe("State", () => {
     })
 
     it("renders typing", (done) => {
-        var called = false
-        const state = new State(() => called ? done() : called = true)
+        const state = getDefaultState(done)
         const graph = state.graphs['views']
         const newText = "lala"
         const event = {
@@ -41,6 +56,63 @@ describe("State", () => {
         graph.onTextFieldChange(event)
     })
 })
+
+describe("isElementVisible", () => {
+    it("returns true for visible elements", () => {
+        const graph = new Graph(getDefaultGraphArgs())
+        const visible = graph.isElementVisible(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
+        assert.isTrue(visible)
+    })
+
+    it("returns false for offscreen elements", () => {
+        const graph = new Graph(getDefaultGraphArgs())
+        const visible = graph.isElementVisible(getDefaultDOMElement(), {innerHeight: 0, innerWidth: 0})
+        assert.isFalse(visible)
+    })
+})
+
+describe("onPossibleVisibilityChange", () => {
+    it("renders its incremented view count if the graph became visible", (done) => {
+        var called = false
+        const state = new State((newState) => called ? checkIncrementation(newState) : called = true)
+        const graph = state.graphs['counts']
+        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
+        function checkIncrementation(newState) {
+            assert.strictEqual(1, newState.graphs['views'].data['counts'])
+            done()
+        }
+    })
+
+    it("doesn't increment the view count if the graph if offscreen", () => {
+        const state = new State(() => {})
+        const graph = state.graphs['counts']
+        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 0, innerWidth: 0})
+        assert.strictEqual(0, state.graphs['views'].data['counts'])
+    })
+
+    it("doesn't increment the view count if the graph was already visible", () => {
+        const state = new State(() => {})
+        const graph = state.graphs['counts']
+        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
+        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
+        assert.strictEqual(1, state.graphs['views'].data['counts'])
+    })
+})
+
+describe("getDataAsArray", () => {
+    it("works", () => {
+        const state = new State(() => {})
+        const views = state.graphs['views']
+        const expected = [
+            {text: "views", value: 0},
+            {text: "funnel", value: 0},
+            {text: "counts", value: 0},
+            {text: "speed", value: 0},
+        ]
+        assert.deepEqual(expected, views.getDataAsArray())
+    })
+})
+
 
 describe("Graph", () => {
     it("stores typing", () => {
@@ -56,8 +128,8 @@ describe("Graph", () => {
     })
 
     it("renders typing", (done) => {
-        const params = Object.assign(getDefaultGraphArgs(), {render: done})
-        const graph = new Graph(params)
+        const state = getDefaultState(done)
+        const graph = state.graphs['counts']
         const newText = "lala"
         const event = {
             target: {
