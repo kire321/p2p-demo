@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --compilers js:babel/register tests.js"
+    "test": "mocha --compilers js:babel/register tests.js",
+    "debug": "mocha debug --compilers js:babel/register tests.js"
   },
   "devDependencies": {
     "babel": "5.8.3",

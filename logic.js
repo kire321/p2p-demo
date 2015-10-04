@@ -17,8 +17,7 @@ class State {
         this.graphs = {
             views: new Graph({
                 parent: this,
-                title: "How viewed is each graph",
-                axisTitle: "views",
+                title: "View count for each graph",
                 startingData: {
                     "views": 0,
                     "funnel": 0,
@@ -29,7 +28,6 @@ class State {
             funnel: new Graph({
                 parent: this,
                 title: "A funnel",
-                axisTitle: "occurances of each event",
                 startingData: {
                     "view graph": 0,
                     "click comment box": 0,
@@ -39,18 +37,16 @@ class State {
             counts: new Graph({
                 parent: this,
                 title: "Let's count some events",
-                axisTitle: "occurances of each event",
                 startingData: {
                     "page loads": 0,
                     "scrolls": 0,
-                    "select comment box": 0,
-                    "comment submission": 0,
+                    "textbox clicks": 0,
+                    "submit": 0,
                 },
             }),
             speed: new Graph({
                 parent: this,
-                title: "Typing speed",
-                axisTitle: "characters in comment / seconds spent editing",
+                title: "Typing speed of each comment, in characters / second",
                 startingData: {},
             }),
         }
@@ -91,17 +87,15 @@ class Graph {
     comments:Array<string>;
     data:{[key: string]: number};
     title:string;
-    axisTitle:string;
     visible:bool;
     startedTypingTime:?number;
     */
 
-    constructor(args/*:{parent:State, title:string, axisTitle:string, startingData:{[key: string]: number}}*/) {
+    constructor(args/*:{parent:State, title:string, startingData:{[key: string]: number}}*/) {
         this.parent = args.parent
         this.typing = ''
         this.data = args.startingData
         this.title = args.title
-        this.axisTitle = args.axisTitle
         this.comments = []
         this.visible = false
         this.startedTypingTime = null
@@ -126,15 +120,15 @@ class Graph {
 
             this.parent.updateFunnel('submit')
 
-            this.parent.graphs['counts'].data['comment submission'] += 1
+            this.parent.graphs['counts'].data['submit'] += 1
 
             // $FlowIssue
-            const speed = this.typing.length / (Date.now() - this.startedTypingTime)
+            const speed = 1000 * this.typing.length / (Date.now() - this.startedTypingTime)
             const graphs = this.parent.graphs
             const commentsCount = Object.keys(graphs)
                 .map(key => graphs[key].comments.length)
                 .reduce((left, right) => left + right)
-            this.parent.graphs['speed'].data[`comment ${commentsCount + 1}`] =  speed
+            this.parent.graphs['speed'].data['' + (commentsCount + 1)] =  speed
             this.startedTypingTime = null
 
             this.comments.push(this.typing)
@@ -145,7 +139,7 @@ class Graph {
 
     onFocus() {
         this.parent.updateFunnel('click comment box')
-        this.parent.graphs['counts'].data['select comment box'] += 1
+        this.parent.graphs['counts'].data['textbox clicks'] += 1
         this.parent.render()
     }
 
@@ -170,9 +164,7 @@ class Graph {
 
             return (
                 rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= window.innerHeight &&
-                rect.right <= window.innerWidth
+                rect.bottom <= window.innerHeight
             )
         }
     }

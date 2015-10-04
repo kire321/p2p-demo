@@ -123,13 +123,13 @@ describe("raw counts", () => {
     it("counts comment box selections", () => {
         const state = new State(() => {})
         clickCommentBox(state.graphs['views'])
-        assert.strictEqual(state.graphs['counts'].data['select comment box'], 1)
+        assert.strictEqual(state.graphs['counts'].data['textbox clicks'], 1)
     })
 
-    it("counts comment submissions", () => {
+    it("counts submits", () => {
         const state = new State(() => {})
         submitComment(state.graphs['views'])
-        assert.strictEqual(state.graphs['counts'].data['comment submission'], 1)
+        assert.strictEqual(state.graphs['counts'].data['submit'], 1)
     })
 })
 
@@ -224,7 +224,7 @@ describe("Graph", () => {
         const state = new State(() => {})
         const graph = state.graphs['counts']
         submitComment(graph)
-        var speed = state.graphs['speed'].data['comment 1']
+        var speed = state.graphs['speed'].data['1']
         assert.isTrue(speed > 0)
     })
 })

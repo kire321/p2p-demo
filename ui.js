@@ -17,7 +17,6 @@ const Row = React.createClass({
         graph: React.PropTypes.shape({
             typing: React.PropTypes.string.isRequired,
             title: React.PropTypes.string.isRequired,
-            axisTitle: React.PropTypes.string.isRequired,
             onKeyUp: React.PropTypes.func.isRequired,
             onTextFieldChange: React.PropTypes.func.isRequired,
             onPossibleVisibilityChange: React.PropTypes.func.isRequired,
@@ -41,7 +40,7 @@ const Row = React.createClass({
                 <div className="col-md-4" />
                 <div className="panel panel-default col-md-4">
                     <div className="panel-heading">
-                        <h3 className="panel-title">{`${graph.title}, in units of ${graph.axisTitle}`}</h3>
+                        <h3 className="panel-title">{graph.title}</h3>
                     </div>
                     <div className="panel-body">
                         <BarChart
@@ -49,7 +48,6 @@ const Row = React.createClass({
                             height={300}
                             margin={margin}
                             data={graph.getDataAsArray()}
-                            ylabel={graph.axisTitle}
                             ref='chart'
                             />
                         <ul className="list-group">
