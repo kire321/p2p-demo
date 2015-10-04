@@ -7,6 +7,7 @@ import {State} from './logic'
 
 declare var BarChart:ReactClass
 const $ = ():any => {}
+const Peer = () => {}
 */
 
 const margin = {top: 20, right: 20, bottom: 30, left: 40};
@@ -104,4 +105,4 @@ new State((state) => {
       <Root state={state}/>,
       document.getElementById('content')
     );
-})
+}, Peer)

@@ -8,12 +8,61 @@ class State {
     graphs:{[key: string]: Graph};
     render:Function;
     lastFunnelStep:number;
+    connections:Array<Object>;
+    Peer:Function;
     */
 
-    constructor(render/*:Function*/) {
+    constructor(render/*:Function*/, Peer/*:Function*/) {
+
+        this.Peer = Peer
+        this.connections = []
+        this.initializeP2P(Peer)
 
         this.lastFunnelStep = 0
 
+        this.initializeGraphs()
+        this.graphs['counts'].data['page loads'] += 1
+
+        this.render = () => render(this)
+        this.render()
+    }
+
+    initializeP2P() {
+        const possibleIdCount = 10
+        const myId = Math.floor(Math.random() * possibleIdCount)
+
+        var peer = new this.Peer(myId, {key: 'qdpeahtrzay06bt9'})
+        peer.on('connection', (conn) => this.listenForOpen(conn))
+
+        for (var i = 0; i < possibleIdCount; i++) {
+            const conn = peer.connect(i, {serialization: 'json'})
+            this.listenForOpen(conn)
+        }
+    }
+
+    listenForOpen(conn/*:Listenable*/) {
+        conn.on('error', this.onError)
+        conn.on('open', () => this.onOpen(conn))
+    }
+
+    onError(error/*:Error*/) {
+        console.trace(error)
+    }
+
+    onOpen(conn/*:Listenable*/) {
+        conn.on('data', this.onPeerState.bind(this))
+        conn.on('error', this.onError)
+        conn.on('close', function() {
+            console.log("conn closed")
+        })
+        this.connections.push(conn)
+    }
+
+    onPeerState(state/*:State*/) {
+        console.log("time to merge")
+    }
+
+    initializeGraphs() {
         this.graphs = {
             views: new Graph({
                 parent: this,
@@ -50,10 +99,6 @@ class State {
                 startingData: {},
             }),
         }
-
-        this.graphs['counts'].data['page loads'] += 1
-        this.render = () => render(this)
-        this.render()
     }
 
     updateFunnel(event/*:string*/) {
@@ -200,6 +245,10 @@ declare class Rectangle {
 declare class Window {
     innerHeight: number,
     innerWidth: number,
+}
+
+declare class Listenable {
+    on: (event:string, callback: Function) => void
 }
 
 */

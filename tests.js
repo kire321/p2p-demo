@@ -8,8 +8,15 @@ declare function before(func:any):any
 import {State, Graph} from './logic'
 var assert = require('chai').assert
 
+const doNothingConnection = {'on': () => {}}
+const getDoNothingPeer = () => () => ({
+    on: () => {},
+    connect: () => doNothingConnection,
+})
+const getMinimalState = () => new State(() => {}, getDoNothingPeer())
+
 const getDefaultGraphArgs = () => ({
-    parent: new State(() => {}),
+    parent: getMinimalState(),
     title: 'laTitle',
     axisTitle: 'laAxis',
     startingData: {},
@@ -24,9 +31,10 @@ const getDefaultDOMElement = () => ({
     })
 })
 
-const getDefaultState = ({done, rendersToSkip}/*:{done:Function, rendersToSkip:number}*/)/*:State*/ => {
+const getStateWithRenderCallback = ({done, rendersToSkip}/*:{done:Function, rendersToSkip:number}*/)/*:State*/ => {
     var calls = 0
-    return new State((newState) => calls === rendersToSkip ? done(null, newState) : calls += 1)
+    const callback = (newState) => calls === rendersToSkip ? done(null, newState) : calls += 1
+    return new State(callback, getDoNothingPeer())
 }
 
 // $FlowIssue
@@ -53,7 +61,7 @@ const submitComment = (graph/*:Graph*/) => {
 
 describe("funnel", () => {
     it("when I view a graph, an incremented view count is rendered", (done) => {
-        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 1}).graphs['counts']
+        const graph = getStateWithRenderCallback({done: checkIncrementation, rendersToSkip: 1}).graphs['counts']
         view(graph)
         function checkIncrementation(error, newState) {
             assert.strictEqual(newState.graphs['funnel'].data['view graph'], 1)
@@ -62,7 +70,7 @@ describe("funnel", () => {
     })
 
     it("Given I viewed a graph, when I view a graph, the click count is not incremented", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         const graph = state.graphs['counts']
         view(graph)
         scrollAwayFrom(graph)
@@ -71,7 +79,7 @@ describe("funnel", () => {
     })
 
     it("Given I viewed a graph, when I click a text box, an incremented click count is rendered", (done) => {
-        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 2}).graphs['counts']
+        const graph = getStateWithRenderCallback({done: checkIncrementation, rendersToSkip: 2}).graphs['counts']
         view(graph)
         clickCommentBox(graph)
         function checkIncrementation(error, newState) {
@@ -81,7 +89,7 @@ describe("funnel", () => {
     })
 
     it("Given I viewed a graph and clicked a text box, when I press enter, an incremented submit count is rendered", (done) => {
-        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 4}).graphs['counts']
+        const graph = getStateWithRenderCallback({done: checkIncrementation, rendersToSkip: 4}).graphs['counts']
         view(graph)
         clickCommentBox(graph)
         submitComment(graph)
@@ -92,7 +100,7 @@ describe("funnel", () => {
     })
 
     it("Given I viewed, clicked, submitted, and clicked, when I submit, the entire funnel has occured once", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         const graph = state.graphs['counts']
         view(graph)
         clickCommentBox(graph)
@@ -107,12 +115,12 @@ describe("funnel", () => {
 
 describe("raw counts", () => {
     it("counts page loads", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         assert.strictEqual(state.graphs['counts'].data['page loads'], 1)
     })
 
     it("counts scrolls", (done) => {
-        const state = getDefaultState({done: checkIncrementation, rendersToSkip: 1})
+        const state = getStateWithRenderCallback({done: checkIncrementation, rendersToSkip: 1})
         state.onScroll()
         function checkIncrementation(error, newState) {
             assert.strictEqual(newState.graphs['counts'].data['scrolls'], 1)
@@ -121,13 +129,13 @@ describe("raw counts", () => {
     })
 
     it("counts comment box selections", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         clickCommentBox(state.graphs['views'])
         assert.strictEqual(state.graphs['counts'].data['textbox clicks'], 1)
     })
 
     it("counts submits", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         submitComment(state.graphs['views'])
         assert.strictEqual(state.graphs['counts'].data['submit'], 1)
     })
@@ -136,7 +144,7 @@ describe("raw counts", () => {
 describe("State", () => {
 
     it("has empty text fields by default", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         assert.strictEqual('', state.graphs["views"].typing)
     })
 
@@ -145,18 +153,18 @@ describe("State", () => {
         new State((state) => {
             assert.isDefined(state.graphs["views"])
             done()
-        })
+        }, getDoNothingPeer())
     })
 
     it("renders typing", (done) => {
-        const graph = getDefaultState({done, rendersToSkip: 1}).graphs['views']
+        const graph = getStateWithRenderCallback({done, rendersToSkip: 1}).graphs['views']
         typeComment(graph)
     })
 })
 
 describe("onPossibleVisibilityChange", () => {
     it("renders its incremented view count if the graph became visible", (done) => {
-        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 1}).graphs['counts']
+        const graph = getStateWithRenderCallback({done: checkIncrementation, rendersToSkip: 1}).graphs['counts']
         view(graph)
         function checkIncrementation(error, newState) {
             assert.strictEqual(1, newState.graphs['views'].data['counts'])
@@ -165,14 +173,14 @@ describe("onPossibleVisibilityChange", () => {
     })
 
     it("doesn't increment the view count if the graph if offscreen", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         const graph = state.graphs['counts']
         scrollAwayFrom(graph)
         assert.strictEqual(0, state.graphs['views'].data['counts'])
     })
 
     it("doesn't increment the view count if the graph was already visible", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         const graph = state.graphs['counts']
         view(graph)
         view(graph)
@@ -182,7 +190,7 @@ describe("onPossibleVisibilityChange", () => {
 
 describe("getDataAsArray", () => {
     it("works", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         const views = state.graphs['views']
         const expected = [
             {text: "views", value: 0},
@@ -203,7 +211,7 @@ describe("Graph", () => {
     })
 
     it("renders typing", (done) => {
-        const graph = getDefaultState({done, rendersToSkip: 1}).graphs['counts']
+        const graph = getStateWithRenderCallback({done, rendersToSkip: 1}).graphs['counts']
         typeComment(graph)
     })
 
@@ -221,10 +229,33 @@ describe("Graph", () => {
     })
 
     it("graphs typing speed", () => {
-        const state = new State(() => {})
+        const state = getMinimalState()
         const graph = state.graphs['counts']
         submitComment(graph)
         var speed = state.graphs['speed'].data['1']
         assert.isTrue(speed > 0)
+    })
+})
+
+
+describe("P2P", () => {
+    it("new inbound connections are added to the connection pool", () => {
+        const conn = {'on': (event, callback) => event === 'open' ? callback() : null}
+        const Peer = () => ({
+            on: (event, callback) => event === 'connection' ? callback(conn) : null,
+            connect: () => doNothingConnection,
+        })
+        const state = new State(() => {}, Peer)
+        assert.strictEqual(state.connections.length, 1)
+    })
+
+    it("successful outbound connections are added to the connection pool", () => {
+        const conn = {'on': (event, callback) => event === 'open' ? callback() : null}
+        const Peer = () => ({
+            on: () => {},
+            connect: id => id === 5 ? conn : doNothingConnection,
+        })
+        const state = new State(() => {}, Peer)
+        assert.strictEqual(state.connections.length, 1)
     })
 })
