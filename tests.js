@@ -57,20 +57,6 @@ describe("State", () => {
     })
 })
 
-describe("isElementVisible", () => {
-    it("returns true for visible elements", () => {
-        const graph = new Graph(getDefaultGraphArgs())
-        const visible = graph.isElementVisible(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
-        assert.isTrue(visible)
-    })
-
-    it("returns false for offscreen elements", () => {
-        const graph = new Graph(getDefaultGraphArgs())
-        const visible = graph.isElementVisible(getDefaultDOMElement(), {innerHeight: 0, innerWidth: 0})
-        assert.isFalse(visible)
-    })
-})
-
 describe("onPossibleVisibilityChange", () => {
     it("renders its incremented view count if the graph became visible", (done) => {
         var called = false

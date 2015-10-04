@@ -99,31 +99,35 @@ class Graph {
 
 
     onPossibleVisibilityChange(element/*:DOMElement*/, window/*:Window*/) {
-        if (this.didBecomeVisible(element, window)) {
+        if (didBecomeVisible(this)) {
             const graphs = this.parent.graphs
             const myName = Object.keys(graphs).filter(key => graphs[key] === this)[0]
             graphs['views'].data[myName] += 1
             this.parent.render()
         }
+
+        function didBecomeVisible(self)/*:bool*/ {
+            const newVisibility = isElementVisible(element, window)
+            const becameVisible = (!self.visible) && newVisibility
+            self.visible = newVisibility
+            return becameVisible
+        }
+
+        function isElementVisible()/*:bool*/ {
+            var rect = element.getBoundingClientRect()
+
+            return (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= window.innerHeight &&
+                rect.right <= window.innerWidth
+            )
+        }
     }
 
-    didBecomeVisible(element/*:DOMElement*/, window/*:Window*/)/*:bool*/ {
-        const newVisibility = this.isElementVisible(element, window)
-        const becameVisible = (!this.visible) && newVisibility
-        this.visible = newVisibility
-        return becameVisible
-    }
 
-    isElementVisible(element/*:DOMElement*/, window/*:Window*/)/*:bool*/ {
-        var rect = element.getBoundingClientRect()
 
-        return (
-            rect.top >= 0 &&
-            rect.left >= 0 &&
-            rect.bottom <= window.innerHeight &&
-            rect.right <= window.innerWidth
-        )
-    }
+
 }
 
 if(typeof exports === 'object') {
