@@ -29,6 +29,7 @@ const getDefaultState = ({done, rendersToSkip}/*:{done:Function, rendersToSkip:n
     return new State((newState) => calls === rendersToSkip ? done(null, newState) : calls += 1)
 }
 
+// $FlowIssue
 const view = (graph/*:Graph*/) => graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
 const scrollAwayFrom = (graph/*:Graph*/) => graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 0, innerWidth: 0})
 
@@ -217,5 +218,13 @@ describe("Graph", () => {
         const graph = new Graph(getDefaultGraphArgs())
         pushEnter(graph)
         assert.deepEqual(graph.comments, [])
+    })
+
+    it("graphs typing speed", () => {
+        const state = new State(() => {})
+        const graph = state.graphs['counts']
+        submitComment(graph)
+        var speed = state.graphs['speed'].data['comment 1']
+        assert.isTrue(speed > 0)
     })
 })

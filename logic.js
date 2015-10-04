@@ -93,6 +93,7 @@ class Graph {
     title:string;
     axisTitle:string;
     visible:bool;
+    startedTypingTime:?number;
     */
 
     constructor(args/*:{parent:State, title:string, axisTitle:string, startingData:{[key: string]: number}}*/) {
@@ -103,6 +104,7 @@ class Graph {
         this.axisTitle = args.axisTitle
         this.comments = []
         this.visible = false
+        this.startedTypingTime = null
     }
 
     getDataAsArray()/*:Array<Bar>*/ {
@@ -111,6 +113,9 @@ class Graph {
 
     onTextFieldChange(event/*:{target: {value: string}}*/) {
         this.typing = event.target.value
+        if (this.startedTypingTime === null) {
+            this.startedTypingTime = Date.now()
+        }
         this.parent.render()
     }
 
@@ -118,10 +123,22 @@ class Graph {
     onKeyUp(event/*:{which:number}*/) {
         var enterKey = 13;
         if (this.typing !== '' && event.which == enterKey){
+
+            this.parent.updateFunnel('submit')
+
+            this.parent.graphs['counts'].data['comment submission'] += 1
+
+            // $FlowIssue
+            const speed = this.typing.length / (Date.now() - this.startedTypingTime)
+            const graphs = this.parent.graphs
+            const commentsCount = Object.keys(graphs)
+                .map(key => graphs[key].comments.length)
+                .reduce((left, right) => left + right)
+            this.parent.graphs['speed'].data[`comment ${commentsCount + 1}`] =  speed
+            this.startedTypingTime = null
+
             this.comments.push(this.typing)
             this.typing = ''
-            this.parent.updateFunnel('submit')
-            this.parent.graphs['counts'].data['comment submission'] += 1            
             this.parent.render()
         }
     }
