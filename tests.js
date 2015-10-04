@@ -104,6 +104,34 @@ describe("funnel", () => {
     })
 })
 
+describe("raw counts", () => {
+    it("counts page loads", () => {
+        const state = new State(() => {})
+        assert.strictEqual(state.graphs['counts'].data['page loads'], 1)
+    })
+
+    it("counts scrolls", (done) => {
+        const state = getDefaultState({done: checkIncrementation, rendersToSkip: 1})
+        state.onScroll()
+        function checkIncrementation(error, newState) {
+            assert.strictEqual(newState.graphs['counts'].data['scrolls'], 1)
+            done()
+        }
+    })
+
+    it("counts comment box selections", () => {
+        const state = new State(() => {})
+        clickCommentBox(state.graphs['views'])
+        assert.strictEqual(state.graphs['counts'].data['select comment box'], 1)
+    })
+
+    it("counts comment submissions", () => {
+        const state = new State(() => {})
+        submitComment(state.graphs['views'])
+        assert.strictEqual(state.graphs['counts'].data['comment submission'], 1)
+    })
+})
+
 describe("State", () => {
 
     it("has empty text fields by default", () => {

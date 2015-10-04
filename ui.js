@@ -78,21 +78,29 @@ const Row = React.createClass({
 const Root = React.createClass({
     propTypes: {
         state: React.PropTypes.shape({
-            graphs: React.PropTypes.object.isRequired
+            graphs: React.PropTypes.object.isRequired,
+            onScroll: React.PropTypes.func.isRequired,
         }).isRequired
     },
-  render() {
-    return (
-        <div className="container-fluid">
-        {
-            Object.keys(this.props.state.graphs).map(key =>
-                (<Row graph={this.props.state.graphs[key]} key={key}/>)
-            )
-        }
-        </div>
-    );
-  }
+
+    componentDidMount() {
+        const state = this.props.state
+        $(window).on('scroll', state.onScroll.bind(state))
+    },
+
+    render() {
+        return (
+            <div className="container-fluid">
+                {
+                    Object.keys(this.props.state.graphs).map(key =>
+                        (<Row graph={this.props.state.graphs[key]} key={key}/>)
+                    )
+                }
+            </div>
+        );
+    }
 });
+
 new State((state) => {
     React.render(
       <Root state={state}/>,
