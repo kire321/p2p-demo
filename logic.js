@@ -7,9 +7,13 @@ class State {
     /*::
     graphs:{[key: string]: Graph};
     render:Function;
+    lastFunnelStep:number;
     */
 
     constructor(render/*:Function*/) {
+
+        this.lastFunnelStep = 0
+
         this.graphs = {
             views: new Graph({
                 parent: this,
@@ -54,6 +58,23 @@ class State {
         this.render = () => render(this)
         this.render()
     }
+
+    updateFunnel(event/*:string*/) {
+        const order = {
+            'view graph': 1,
+            'click comment box': 2,
+            'submit': 3,
+        }
+        const currentStep = order[event]
+        if (currentStep === this.lastFunnelStep + 1) {
+            this.graphs['funnel'].data[event] += 1
+            this.lastFunnelStep = currentStep
+        }
+        if (this.lastFunnelStep === 3) {
+            this.lastFunnelStep = 0
+        }
+    }
+
 }
 
 class Graph {
@@ -90,19 +111,25 @@ class Graph {
 
     onKeyUp(event/*:{which:number}*/) {
         var enterKey = 13;
-        if (event.which == enterKey){
+        if (this.typing !== '' && event.which == enterKey){
             this.comments.push(this.typing)
             this.typing = ''
+            this.parent.updateFunnel('submit')
             this.parent.render()
         }
     }
 
+    onFocus() {
+        this.parent.updateFunnel('click comment box')
+        this.parent.render()
+    }
 
     onPossibleVisibilityChange(element/*:DOMElement*/, window/*:Window*/) {
         if (didBecomeVisible(this)) {
             const graphs = this.parent.graphs
             const myName = Object.keys(graphs).filter(key => graphs[key] === this)[0]
             graphs['views'].data[myName] += 1
+            this.parent.updateFunnel('view graph')
             this.parent.render()
         }
 

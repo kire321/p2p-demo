@@ -66,6 +66,7 @@ const Row = React.createClass({
                             placeholder="Add a comment..."
                             onKeyUp={graph.onKeyUp.bind(graph)}
                             onChange={graph.onTextFieldChange.bind(graph)}
+                            onFocus={graph.onFocus.bind(graph)}
                             />
                     </div>
                 </div>

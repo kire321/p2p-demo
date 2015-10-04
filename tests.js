@@ -24,10 +24,85 @@ const getDefaultDOMElement = () => ({
     })
 })
 
-const getDefaultState = (done) => {
-    var called = false
-    return new State((newState) => called ? done(null, newState) : called = true)
+const getDefaultState = ({done, rendersToSkip}/*:{done:Function, rendersToSkip:number}*/)/*:State*/ => {
+    var calls = 0
+    return new State((newState) => calls === rendersToSkip ? done(null, newState) : calls += 1)
 }
+
+const view = (graph/*:Graph*/) => graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
+const scrollAwayFrom = (graph/*:Graph*/) => graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 0, innerWidth: 0})
+
+const defaultComment = "lala"
+const typeComment = (graph/*:Graph*/) => {
+    const event = {
+        target: {
+            value: 'lala'
+        }
+    }
+    graph.onTextFieldChange(event)
+}
+
+const pushEnter = (graph/*:Graph*/) => graph.onKeyUp({which: 13})
+const clickCommentBox = (graph/*:Graph*/) => graph.onFocus()
+
+const submitComment = (graph/*:Graph*/) => {
+    typeComment(graph)
+    pushEnter(graph)
+}
+
+describe("funnel", () => {
+    it("when I view a graph, an incremented view count is rendered", (done) => {
+        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 1}).graphs['counts']
+        view(graph)
+        function checkIncrementation(error, newState) {
+            assert.strictEqual(newState.graphs['funnel'].data['view graph'], 1)
+            done()
+        }
+    })
+
+    it("Given I viewed a graph, when I view a graph, the click count is not incremented", () => {
+        const state = new State(() => {})
+        const graph = state.graphs['counts']
+        view(graph)
+        scrollAwayFrom(graph)
+        view(graph)
+        assert.strictEqual(state.graphs['funnel'].data['view graph'], 1)
+    })
+
+    it("Given I viewed a graph, when I click a text box, an incremented click count is rendered", (done) => {
+        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 2}).graphs['counts']
+        view(graph)
+        clickCommentBox(graph)
+        function checkIncrementation(error, newState) {
+            assert.strictEqual(newState.graphs['funnel'].data['click comment box'], 1)
+            done()
+        }
+    })
+
+    it("Given I viewed a graph and clicked a text box, when I press enter, an incremented submit count is rendered", (done) => {
+        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 4}).graphs['counts']
+        view(graph)
+        clickCommentBox(graph)
+        submitComment(graph)
+        function checkIncrementation(error, newState) {
+            assert.strictEqual(newState.graphs['funnel'].data['submit'], 1)
+            done()
+        }
+    })
+
+    it("Given I viewed, clicked, submitted, and clicked, when I submit, the entire funnel has occured once", () => {
+        const state = new State(() => {})
+        const graph = state.graphs['counts']
+        view(graph)
+        clickCommentBox(graph)
+        submitComment(graph)
+        clickCommentBox(graph)
+        submitComment(graph)
+        assert.strictEqual(state.graphs['funnel'].data['view graph'], 1)
+        assert.strictEqual(state.graphs['funnel'].data['click comment box'], 1)
+        assert.strictEqual(state.graphs['funnel'].data['submit'], 1)
+    })
+})
 
 describe("State", () => {
 
@@ -45,25 +120,16 @@ describe("State", () => {
     })
 
     it("renders typing", (done) => {
-        const state = getDefaultState(done)
-        const graph = state.graphs['views']
-        const newText = "lala"
-        const event = {
-            target: {
-                value: newText
-            }
-        }
-        graph.onTextFieldChange(event)
+        const graph = getDefaultState({done, rendersToSkip: 1}).graphs['views']
+        typeComment(graph)
     })
 })
 
 describe("onPossibleVisibilityChange", () => {
     it("renders its incremented view count if the graph became visible", (done) => {
-        var called = false
-        const state = new State((newState) => called ? checkIncrementation(newState) : called = true)
-        const graph = state.graphs['counts']
-        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
-        function checkIncrementation(newState) {
+        const graph = getDefaultState({done: checkIncrementation, rendersToSkip: 1}).graphs['counts']
+        view(graph)
+        function checkIncrementation(error, newState) {
             assert.strictEqual(1, newState.graphs['views'].data['counts'])
             done()
         }
@@ -72,15 +138,15 @@ describe("onPossibleVisibilityChange", () => {
     it("doesn't increment the view count if the graph if offscreen", () => {
         const state = new State(() => {})
         const graph = state.graphs['counts']
-        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 0, innerWidth: 0})
+        scrollAwayFrom(graph)
         assert.strictEqual(0, state.graphs['views'].data['counts'])
     })
 
     it("doesn't increment the view count if the graph was already visible", () => {
         const state = new State(() => {})
         const graph = state.graphs['counts']
-        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
-        graph.onPossibleVisibilityChange(getDefaultDOMElement(), {innerHeight: 1, innerWidth: 1})
+        view(graph)
+        view(graph)
         assert.strictEqual(1, state.graphs['views'].data['counts'])
     })
 })
@@ -103,39 +169,25 @@ describe("getDataAsArray", () => {
 describe("Graph", () => {
     it("stores typing", () => {
         const graph = new Graph(getDefaultGraphArgs())
-        const newText = "lala"
-        const event = {
-            target: {
-                value: newText
-            }
-        }
-        graph.onTextFieldChange(event)
-        assert.strictEqual(newText, graph.typing)
+        typeComment(graph)
+        assert.strictEqual(defaultComment, graph.typing)
     })
 
     it("renders typing", (done) => {
-        const state = getDefaultState(done)
-        const graph = state.graphs['counts']
-        const newText = "lala"
-        const event = {
-            target: {
-                value: newText
-            }
-        }
-        graph.onTextFieldChange(event)
+        const graph = getDefaultState({done, rendersToSkip: 1}).graphs['counts']
+        typeComment(graph)
     })
 
     it("when I push enter, the text becomes blank and the comment is added to the list", () => {
         const graph = new Graph(getDefaultGraphArgs())
-        const newText = "lala"
-        const event = {
-            target: {
-                value: newText
-            }
-        }
-        graph.onTextFieldChange(event)
-        graph.onKeyUp({which: 13})
+        submitComment(graph)
         assert.strictEqual('', graph.typing)
-        assert.deepEqual(graph.comments, [newText])
+        assert.deepEqual(graph.comments, [defaultComment])
+    })
+
+    it("Given the comment field is empty, When I push enter nothing happens", () => {
+        const graph = new Graph(getDefaultGraphArgs())
+        pushEnter(graph)
+        assert.deepEqual(graph.comments, [])
     })
 })
