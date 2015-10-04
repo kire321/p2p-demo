@@ -237,6 +237,7 @@ describe("Graph", () => {
     })
 })
 
+const sendMessageToState = (message, state) => state.onOpen({'on': (event, callback) => event === 'data' ? callback(message) : undefined})
 
 describe("P2P", () => {
     it("new inbound connections are added to the connection pool", () => {
@@ -257,5 +258,36 @@ describe("P2P", () => {
         })
         const state = new State(() => {}, Peer)
         assert.strictEqual(state.connections.length, 1)
+    })
+
+    it("when I add a comment, that comment is sent to all peers", (done) => {
+        const state = getMinimalState()
+        state.connections = [{ send: state => doAssertions(state) }]
+        submitComment(state.graphs['views'])
+        function doAssertions(raw) {
+            const newState = JSON.parse(raw)
+            assert.deepEqual(newState.graphs['views'].comments, ['lala'])
+            done()
+        }
+    })
+
+    it("when my machine receives a comment, that comment is rendered", (done) => {
+        const state = getStateWithRenderCallback({done: doAssertions, rendersToSkip: 1})
+        const stateWithNewComment = getMinimalState()
+        submitComment(stateWithNewComment.graphs['views'])
+        const message = JSON.stringify(stateWithNewComment.getSharedState())
+        sendMessageToState(message, state)
+        function doAssertions(error, newState) {
+            assert.deepEqual(newState.graphs['views'].comments, ['lala'])
+            done()
+        }
+    })
+
+    it("doesn't loop infinitely", () => {
+        const senderState = getMinimalState()
+        const receiverState = getMinimalState()
+        senderState.connections = [{ send: message => sendMessageToState(message, receiverState)} ]
+        receiverState.connections = [{ send: message => sendMessageToState(message, senderState)} ]
+        submitComment(senderState.graphs['views'])
     })
 })

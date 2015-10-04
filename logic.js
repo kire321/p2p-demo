@@ -1,6 +1,11 @@
 "use strict";
 /* @flow */
-
+/*::
+import _ from 'lodash'
+*/
+if (typeof require === 'function') {
+    var _ = require('lodash')
+}
 
 class State {
 
@@ -10,6 +15,7 @@ class State {
     lastFunnelStep:number;
     connections:Array<Object>;
     Peer:Function;
+    lastState:SharedState;
     */
 
     constructor(render/*:Function*/, Peer/*:Function*/) {
@@ -23,8 +29,28 @@ class State {
         this.initializeGraphs()
         this.graphs['counts'].data['page loads'] += 1
 
-        this.render = () => render(this)
-        this.render()
+        this.render = render
+        this.lastState = this.getSharedState()
+        this.onUpdate()
+
+    }
+
+    onUpdate() {
+        this.render(this)
+        const sharedState = this.getSharedState()
+        if(!_.isEqual(sharedState, this.lastState)) {
+            const message = JSON.stringify(sharedState)
+            this.lastState = sharedState
+            this.connections.forEach((conn) => conn.send(message))
+        }
+    }
+
+    getSharedState()/*:SharedState*/ {
+        const pairs = _.pairs(this.graphs).map(args => [args[0], args[1].getSharedState()])
+        const graphs = _.zipObject(pairs)
+        return {
+            graphs: graphs
+        }
     }
 
     initializeP2P() {
@@ -35,7 +61,7 @@ class State {
         peer.on('connection', (conn) => this.listenForOpen(conn))
 
         for (var i = 0; i < possibleIdCount; i++) {
-            const conn = peer.connect(i, {serialization: 'json'})
+            const conn = peer.connect(i)
             this.listenForOpen(conn)
         }
     }
@@ -58,8 +84,11 @@ class State {
         this.connections.push(conn)
     }
 
-    onPeerState(state/*:State*/) {
-        console.log("time to merge")
+    onPeerState(raw/*:string*/) {
+        const state = JSON.parse(raw)
+        const mergeByKey = key => this.graphs[key].merge(state.graphs[key])
+        Object.keys(this.graphs).forEach(mergeByKey)
+        this.onUpdate()
     }
 
     initializeGraphs() {
@@ -119,7 +148,7 @@ class State {
 
     onScroll() {
         this.graphs['counts'].data['scrolls'] += 1
-        this.render()
+        this.onUpdate()
     }
 
 }
@@ -146,6 +175,21 @@ class Graph {
         this.startedTypingTime = null
     }
 
+    getSharedState()/*:SharedGraphState*/ {
+        return {
+            comments: _.clone(this.comments),
+        }
+    }
+
+    merge(other/*:Graph*/) {
+        const myComments = _.indexBy(this.comments, (item, index) => index)
+        const otherComments = _.indexBy(other.comments, (item, index) => index)
+        const asObject = _.merge(myComments, otherComments)
+        const asUnsortedArray = _.pairs(asObject)
+        const asSortedArray = _.sortBy(asUnsortedArray, args => args[0])
+        this.comments = asSortedArray.map(args => args[1])
+    }
+
     getDataAsArray()/*:Array<Bar>*/ {
         return Object.keys(this.data).map(key => ({text: key, value: this.data[key]}))
     }
@@ -155,7 +199,7 @@ class Graph {
         if (this.startedTypingTime === null) {
             this.startedTypingTime = Date.now()
         }
-        this.parent.render()
+        this.parent.onUpdate()
     }
 
 
@@ -178,14 +222,14 @@ class Graph {
 
             this.comments.push(this.typing)
             this.typing = ''
-            this.parent.render()
+            this.parent.onUpdate()
         }
     }
 
     onFocus() {
         this.parent.updateFunnel('click comment box')
         this.parent.graphs['counts'].data['textbox clicks'] += 1
-        this.parent.render()
+        this.parent.onUpdate()
     }
 
     onPossibleVisibilityChange(element/*:DOMElement*/, window/*:Window*/) {
@@ -194,7 +238,7 @@ class Graph {
             const myName = Object.keys(graphs).filter(key => graphs[key] === this)[0]
             graphs['views'].data[myName] += 1
             this.parent.updateFunnel('view graph')
-            this.parent.render()
+            this.parent.onUpdate()
         }
 
         function didBecomeVisible(self)/*:bool*/ {
@@ -225,6 +269,14 @@ if(typeof exports === 'object') {
 }
 
 /*::
+
+declare class SharedState {
+    graphs:{[key:string]: SharedGraphState}
+}
+
+declare class SharedGraphState {
+    comments: Array<string>
+}
 
 declare class Bar {
     text:string;
