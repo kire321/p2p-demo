@@ -178,10 +178,16 @@ class Graph {
     getSharedState()/*:SharedGraphState*/ {
         return {
             comments: _.clone(this.comments),
+            data: _.clone(this.data),
         }
     }
 
     merge(other/*:Graph*/) {
+        this.mergeComments(other)
+        this.data = _.merge(this.data, other.data, (left, right) => _.isNumber(left) && _.isNumber(right) ? Math.max(left, right) : undefined)
+    }
+
+    mergeComments(other/*:Graph*/) {
         const myComments = _.indexBy(this.comments, (item, index) => index)
         const otherComments = _.indexBy(other.comments, (item, index) => index)
         const asObject = _.merge(myComments, otherComments)
@@ -257,10 +263,6 @@ class Graph {
             )
         }
     }
-
-
-
-
 }
 
 if(typeof exports === 'object') {
@@ -271,11 +273,12 @@ if(typeof exports === 'object') {
 /*::
 
 declare class SharedState {
-    graphs:{[key:string]: SharedGraphState}
+    graphs:{[key:string]: SharedGraphState};
 }
 
 declare class SharedGraphState {
-    comments: Array<string>
+    comments: Array<string>;
+    data:{[key: string]: number};
 }
 
 declare class Bar {

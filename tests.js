@@ -56,6 +56,8 @@ const clickCommentBox = (graph/*:Graph*/) => graph.onFocus()
 
 const submitComment = (graph/*:Graph*/) => {
     typeComment(graph)
+    //  $FlowIssue
+    graph.startedTypingTime -= 1000
     pushEnter(graph)
 }
 
@@ -238,6 +240,18 @@ describe("Graph", () => {
 })
 
 const sendMessageToState = (message, state) => state.onOpen({'on': (event, callback) => event === 'data' ? callback(message) : undefined})
+const doStuffThatUpdatesGraphs = state => {
+    const graph = state.graphs['views']
+    view(graph)
+    clickCommentBox(graph)
+    submitComment(graph)
+}
+const checkGraphs = state => {
+    assert.strictEqual(state.graphs['views'].data['views'], 1)
+    assert.strictEqual(state.graphs['funnel'].data['submit'], 1)
+    assert.strictEqual(state.graphs['counts'].data['textbox clicks'], 1)
+    assert.isTrue(state.graphs['speed'].data['1'] > 0)
+}
 
 describe("P2P", () => {
     it("new inbound connections are added to the connection pool", () => {
@@ -290,4 +304,26 @@ describe("P2P", () => {
         receiverState.connections = [{ send: message => sendMessageToState(message, senderState)} ]
         submitComment(senderState.graphs['views'])
     })
+
+    it("when I do stuff on the page, the updated graphs are sent to all peers", (done) => {
+        const state = getMinimalState()
+        var calls = 0
+        state.connections = [{ send: state => calls === 2 ? doAssertions(state) : calls ++}]
+        doStuffThatUpdatesGraphs(state)
+        function doAssertions(raw) {
+            const newState = JSON.parse(raw)
+            checkGraphs(newState)
+            done()
+        }
+    })
+
+    it("when my machine receives graph updates, those updates are merged into the state", () => {
+        const state = getMinimalState()
+        const stateWithUpdatedGraphs = getMinimalState()
+        doStuffThatUpdatesGraphs(stateWithUpdatedGraphs)
+        const message = JSON.stringify(stateWithUpdatedGraphs.getSharedState())
+        sendMessageToState(message, state)
+        checkGraphs(state)
+    })
+
 })
